@@ -1,0 +1,231 @@
+
+/*{
+    "CREDIT": "",
+    "DESCRIPTION": "Maps two trapezoids to destination rectangles for projection mapping",
+    "CATEGORIES": [ "effect" ],
+    "INPUTS": [
+        {
+            "TYPE": "image",
+            "NAME": "VideoInput",
+            "LABEL": "Video"
+        }
+    ]
+}*/
+
+/*
+ISF Reference
+=========================
+
+1) Valid inputs:
+    - "event"
+    - "bool"
+    - "long"
+    - "float"
+    - "point2D"
+    - "color"
+    - "image"
+    - "audio"
+    - "audioFFT"
+
+2) Functions:
+    - IMG_NORM_PIXEL() -> get a pixel from input with normalized coordinates
+    - IMG_PIXEL() -> get a pixel from input with screen space coordinates
+
+3) Predefined variables:
+    - RENDERSIZE (resolution of the shader)
+    - TIME (run time)
+    - gl_FragCoord.xy (screen space coordinates of current fragment)
+    - isf_FragNormCoord.xy (normalized coordinates)
+
+To learn more see:
+https://github.com/mrRay/ISF_Spec/
+*/
+
+
+
+
+/*
+These coordinates are all top-left, top-right, bottom-right, bottom-left.
+
+For data in the source shape, we want to map these to the destination shape.
+
+CUBE TOP LEFT
+(0.500,1-0.0), (0.747, 1-0.128), (0.254, 1-0.375, (0.004, 1-0.247)
+
+CUBE TOP RIGHT
+(0.747, 1-0.128), (0.993, 1-0.252), (0.501, 1-0.5), (0.254,1-0.375)
+
+CUBE SECTION 1
+(0.753, 1-0.377), (1.000, 1-0.250), (1.000, 1-0.750), (0.750, 1-0.875)
+destination:
+(0.75,0.5),(1.0,0.5),(1.0,0),(0.75,0)
+
+CUBE SECTION 2
+(0.500, 1-0.500), (0.753, 1-0.377), (0.750, 1-0.875), (0.500, 1-1.000)
+destination:
+(0.5,0.5),(0.75,0.5),(0.75,0),(0.5,0)
+
+CUBE SECTION 3
+(0.250, 1-0.375), (0.500, 1-0.500), (0.500, 1-1.000), (0.251, 1-0.873)
+destination:
+(0.25,0.5),(0.5,0.5),(0.5,0),(0.25,0)
+
+CUBE SECTION 4
+(0.000, 1-0.250), (0.250, 1-0.375), (0.251, 1-0.873), (0.000, 1-0.750)
+destination:
+(0,.5),(.25,.5),(.25,0),(0,0)
+
+*/
+
+// Define trapezoid coordinates (top-left, top-right, bottom-right, bottom-left)
+vec2 trapezoid1[4] = vec2[](
+    vec2(0.500, 1.0-0.0),    // top-left
+    vec2(0.747, 1.0-0.128),  // top-right
+    vec2(0.254, 1.0-0.375),  // bottom-right
+    vec2(0.004, 1.0-0.247)   // bottom-left
+);
+
+vec2 trapezoid2[4] = vec2[](
+    vec2(0.747, 1.0-0.128),  // top-left
+    vec2(0.993, 1.0-0.252),  // top-right
+    vec2(0.501, 1.0-0.5),    // bottom-right
+    vec2(0.254, 1.0-0.375)   // bottom-left
+);
+
+vec2 trapezoid3[4] = vec2[](
+    vec2(0.753, 1.0-0.377),  // top-left
+    vec2(1.000, 1.0-0.250),  // top-right
+    vec2(1.000, 1.0-0.750),  // bottom-right
+    vec2(0.750, 1.0-0.875)   // bottom-left
+);
+
+vec2 trapezoid4[4] = vec2[](
+    vec2(0.500, 1.0-0.500),  // top-left
+    vec2(0.753, 1.0-0.377),  // top-right
+    vec2(0.750, 1.0-0.875),  // bottom-right
+    vec2(0.500, 1.0-1.000)   // bottom-left
+);
+
+vec2 trapezoid5[4] = vec2[](
+    vec2(0.250, 1.0-0.375),  // top-left
+    vec2(0.500, 1.0-0.500),  // top-right
+    vec2(0.500, 1.0-1.000),  // bottom-right
+    vec2(0.251, 1.0-0.873)   // bottom-left
+);
+
+vec2 trapezoid6[4] = vec2[](
+    vec2(0.000, 1.0-0.250),  // top-left
+    vec2(0.250, 1.0-0.375),  // top-right
+    vec2(0.251, 1.0-0.873),  // bottom-right
+    vec2(0.000, 1.0-0.750)   // bottom-left
+);
+
+// Define destination rectangles
+vec2 dest1[4] = vec2[](
+    vec2(0.0, 1.0),   // top-left
+    vec2(0.25, 1.0),  // top-right
+    vec2(0.25, 0.5),  // bottom-right
+    vec2(0.0, 0.5)    // bottom-left
+);
+
+vec2 dest2[4] = vec2[](
+    vec2(0.25, 1.0),  // top-left
+    vec2(0.5, 1.0),   // top-right
+    vec2(0.5, 0.5),   // bottom-right
+    vec2(0.25, 0.5)   // bottom-left
+);
+
+vec2 dest3[4] = vec2[](
+    vec2(0.75, 0.5),  // top-left
+    vec2(1.0, 0.5),   // top-right
+    vec2(1.0, 0.0),   // bottom-right
+    vec2(0.75, 0.0)   // bottom-left
+);
+
+vec2 dest4[4] = vec2[](
+    vec2(0.5, 0.5),   // top-left
+    vec2(0.75, 0.5),  // top-right
+    vec2(0.75, 0.0),  // bottom-right
+    vec2(0.5, 0.0)    // bottom-left
+);
+
+vec2 dest5[4] = vec2[](
+    vec2(0.25, 0.5),  // top-left
+    vec2(0.5, 0.5),   // top-right
+    vec2(0.5, 0.0),   // bottom-right
+    vec2(0.25, 0.0)   // bottom-left
+);
+
+vec2 dest6[4] = vec2[](
+    vec2(0.0, 0.5),   // top-left
+    vec2(0.25, 0.5),  // top-right
+    vec2(0.25, 0.0),  // bottom-right
+    vec2(0.0, 0.0)    // bottom-left
+);
+
+// Function to determine if point is inside a quadrilateral using cross product method
+bool point_inside_quad(vec2 point, vec2[4] quad) {
+    // Test if point is on the same side of each edge
+    bool side1 = ((quad[1].x - quad[0].x) * (point.y - quad[0].y) - (quad[1].y - quad[0].y) * (point.x - quad[0].x)) >= 0.0;
+    bool side2 = ((quad[2].x - quad[1].x) * (point.y - quad[1].y) - (quad[2].y - quad[1].y) * (point.x - quad[1].x)) >= 0.0;
+    bool side3 = ((quad[3].x - quad[2].x) * (point.y - quad[2].y) - (quad[3].y - quad[2].y) * (point.x - quad[2].x)) >= 0.0;
+    bool side4 = ((quad[0].x - quad[3].x) * (point.y - quad[3].y) - (quad[0].y - quad[3].y) * (point.x - quad[3].x)) >= 0.0;
+
+    return (side1 && side2 && side3 && side4) || (!side1 && !side2 && !side3 && !side4);
+}
+
+// Bilinear interpolation to map from destination rectangle to source trapezoid
+vec2 map_rect_to_quad(vec2 point, vec2[4] destRect, vec2[4] sourceQuad) {
+    // Normalize point within the destination rectangle
+    vec2 normalized = vec2(
+        (point.x - destRect[0].x) / (destRect[1].x - destRect[0].x),
+        (point.y - destRect[0].y) / (destRect[3].y - destRect[0].y)
+    );
+
+    // Bilinear interpolation in the source quad
+    vec2 top = mix(sourceQuad[0], sourceQuad[1], normalized.x);
+    vec2 bottom = mix(sourceQuad[3], sourceQuad[2], normalized.x);
+    return mix(top, bottom, normalized.y);
+}
+
+
+
+void main() {
+    vec2 currentCoord = isf_FragNormCoord;
+
+    // Check which destination rectangle the current pixel belongs to
+    if (point_inside_quad(currentCoord, dest1)) {
+        // Map from dest1 to trapezoid1 (CUBE TOP LEFT)
+        vec2 sourceCoord = map_rect_to_quad(currentCoord, dest1, trapezoid1);
+        gl_FragColor = IMG_NORM_PIXEL(VideoInput, sourceCoord);
+    }
+    else if (point_inside_quad(currentCoord, dest2)) {
+        // Map from dest2 to trapezoid2 (CUBE TOP RIGHT)
+        vec2 sourceCoord = map_rect_to_quad(currentCoord, dest2, trapezoid2);
+        gl_FragColor = IMG_NORM_PIXEL(VideoInput, sourceCoord);
+    }
+    else if (point_inside_quad(currentCoord, dest3)) {
+        // Map from dest3 to trapezoid3 (CUBE SECTION 1)
+        vec2 sourceCoord = map_rect_to_quad(currentCoord, dest3, trapezoid3);
+        gl_FragColor = IMG_NORM_PIXEL(VideoInput, sourceCoord);
+    }
+    else if (point_inside_quad(currentCoord, dest4)) {
+        // Map from dest4 to trapezoid4 (CUBE SECTION 2)
+        vec2 sourceCoord = map_rect_to_quad(currentCoord, dest4, trapezoid4);
+        gl_FragColor = IMG_NORM_PIXEL(VideoInput, sourceCoord);
+    }
+    else if (point_inside_quad(currentCoord, dest5)) {
+        // Map from dest5 to trapezoid5 (CUBE SECTION 3)
+        vec2 sourceCoord = map_rect_to_quad(currentCoord, dest5, trapezoid5);
+        gl_FragColor = IMG_NORM_PIXEL(VideoInput, sourceCoord);
+    }
+    else if (point_inside_quad(currentCoord, dest6)) {
+        // Map from dest6 to trapezoid6 (CUBE SECTION 4)
+        vec2 sourceCoord = map_rect_to_quad(currentCoord, dest6, trapezoid6);
+        gl_FragColor = IMG_NORM_PIXEL(VideoInput, sourceCoord);
+    }
+    else {
+        // Pixel is not in any destination rectangle - show black
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+}
