@@ -48,6 +48,10 @@ def getPianoMap():
 
 piano_map = getPianoMap()
 
+def isKeyBlack(key):
+  offset = key % 12
+  return offset in [2, 5, 7, 10, 0]
+
 def updateResolume(row, value):
   print(f"Updating Resolume for row {row} with value {value}")
   resolume = mod('/project1/ui_container/resolume_container/sld_resolume_commands')
@@ -58,57 +62,73 @@ def updateResolume(row, value):
     else:
       resolume.activate_clip(1, value)
   elif row in [2]:
-    print("would map value to piano key:", value, piano_map[value])
     if value == 0:
       resolume.clear_layer(2)
       resolume.clear_layer(3)
       resolume.clear_layer(4)
     else:
-      val = piano_map[value]
-      if val < 53:
-        resolume.activate_clip(2, val)
-        resolume.activate_clip(3, val)
-        resolume.clear_layer(4)
-      else:
+      if isKeyBlack(value):
         resolume.clear_layer(2)
         resolume.clear_layer(3)
-        resolume.activate_clip(4, val)
+        resolume.activate_clip(4, value)
+      else:
+        resolume.activate_clip(2, value)
+        resolume.activate_clip(3, value)
+        resolume.clear_layer(4)
   elif row in [3]:
     if value == 0:
       resolume.clear_layer(5)
       resolume.clear_layer(6)
       resolume.clear_layer(7)
     else:
-      val = piano_map[value]
-      if val < 53:
-        resolume.activate_clip(5, val)
-        resolume.activate_clip(6, val)
-        resolume.clear_layer(7)
-      else:
+      if isKeyBlack(value):
         resolume.clear_layer(5)
         resolume.clear_layer(6)
-        resolume.activate_clip(7, val)
+        resolume.activate_clip(7, value)
+      else:
+        resolume.activate_clip(5, value)
+        resolume.activate_clip(6, value)
+        resolume.clear_layer(7)
   return
 
 def onSizeChange(dat):
   # print(f"Table size changed to {dat.numRows} rows and {dat.numCols} columns")
   # print(dat[1, 0].val)
+  if dat.numRows > 1:
+    op('idle_timer').par.initialize.pulse()
+    usex = op('/project1/ui_container/resolume_container/use_attract_when_idle').par.Value0
+    print(f"usex is {usex}")
+    if usex:
+      attract_mode = op(
+          '/project1/ui_container/resolume_container/attract_mode').par.Value0
+      if attract_mode == 1:
+        op('/project1/ui_container/resolume_container/attract_mode').par.Value0 = 0
+  else:
+    print("No rows in dat, starting idle timer")
+    op('idle_timer').par.start.pulse()
+
+
+
+
+
   for i in range(1, 4):
     try:
       if dat[i, 0] is None:
         if current_values[i-1] != 0:
           current_values[i-1] = 0
-          print(f"Value in row {i} changed to 0")
+          # print(f"Value in row {i} changed to 0")
           updateResolume(i, 0)
       else:
         new_value = int(dat[i, 0].val)
         if new_value != current_values[i-1]:
           # its changed so call resolume
           current_values[i-1] = new_value
-          print(f"Value in row {i} changed to {new_value}")
+          # print(f"Value in row {i} changed to {new_value}")
           updateResolume(i, new_value)
     except ValueError:
       print("got a value error so setting to 0")
       current_values[i-1] = 0
-  print(f"Current values: {current_values}")
+  # print(f"Current values: {current_values}")
+
+
   return
