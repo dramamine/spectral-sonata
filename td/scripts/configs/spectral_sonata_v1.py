@@ -1,8 +1,6 @@
 # nosec
 import sld_resolume_commands as resolume_commands
-from collections import namedtuple
 import random
-
 
 def isKeyBlack(key):
   offset = key % 12
@@ -57,21 +55,22 @@ def start():
 
 def stop():
   set_transition_times(0)
+  resolume_commands.activate_clip(8, 2)
   clear_patterns()
   return
 
-def get_intensity():
-  return int(op('intensity_chop')[0, 0])
+# def get_intensity():
+#   return int(op('intensity_chop')[0, 0])
 
-def set_intensity(num):
-  global intensity
-  intensity = num
-  return
+# def set_intensity(num):
+#   global intensity
+#   intensity = num
+#   return
 
 
-def choose_intensity(num):
-  set_intensity(num)
-  op('/project1/ui_container/resolume_container/knobFixed').par.Value0 = num/19
-  ast.load(random.choice(intensity_templates[num]))
-  ast.prepare()
-  return
+# def choose_intensity(num):
+#   set_intensity(num)
+#   op('/project1/ui_container/resolume_container/knobFixed').par.Value0 = num/19
+#   ast.load(random.choice(intensity_templates[num]))
+#   ast.prepare()
+#   return
