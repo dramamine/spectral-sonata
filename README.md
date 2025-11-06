@@ -17,30 +17,37 @@ Flash the Teensy 4.1 with smartmatrix-serial-5panel.ino
 ### 1. TouchDesigner
 
 Open td/Spectral Sonata.toe
+
 "Attact Mode": generate random patterns on an interval
+
 "Attract While Idle": If no MIDI input after some time, toggle Attract Mode. on MIDI input, disable Attract Mode.
 
 ### 2. ArtNet to Serial Bridge
 
 Run bridge/artnet-to-serial-sender.py
+
 Note that TouchDesigner can kick off this script.
 
 ### 3. Resolume
 
 Open Resolume composition "Spectral Sonata"
+
 Make sure DMX Output is being sent to Localhost.
+
 Make sure Advanced Output is set to the "Smartmatrix cube map"
 
 ### Troubleshooting
 
-Q. Cube not working / paused
-A.
+#### Q. Cube not working / paused
+
 Is the Bridge running and logging that it's working every couple of seconds? If not, reset the bridge script.
+
 Try unplugging and replugging the Teensy USB connection.
+
 Close any Arduino IDE instances as they might be using the Teensy comms port.
 
-Q. MIDI controller not doing anything
-A.
+#### Q. MIDI controller not doing anything
+
 Make sure MIDI controller is mapped in TouchDesigner. Check the MIDI Mapper menu and check the device ID in the sketch.
 
 
